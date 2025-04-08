@@ -1,0 +1,11 @@
+{
+  "name": "@arcfra/neutree-mcp-servers",
+  "version": "0.1.0",
+  "license": "MIT",
+  "exports": {
+    "./servers/controller-coder": "./servers/controller-coder/index.ts"
+  },
+  "publish": {
+    "include": ["servers/**/*.ts"]
+  }
+}
