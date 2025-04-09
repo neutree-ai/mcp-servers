@@ -50,6 +50,7 @@ export async function commitToBranch({
     ["git", "checkout", "-b", branchName],
     ["make", "mockgen"],
     ["make", "fmt"],
+    ["make", "lint"],
     ["git", "add", "."],
     [
       "git",
