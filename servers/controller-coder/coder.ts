@@ -7,6 +7,7 @@ import {
   GENERATE_CONTROLLER,
 } from "./system-prompts.ts";
 import { parseYamlMessage } from "./parser.ts";
+import { LLM } from "./llm.ts";
 
 const GenerateResourceTypeSchema = z.object({
   go_type: z.string(),
@@ -14,7 +15,7 @@ const GenerateResourceTypeSchema = z.object({
 });
 
 export const generateResourceType = async (
-  server: McpServer,
+  llm: LLM,
   {
     sqlSchema,
     stateMachine,
@@ -23,7 +24,7 @@ export const generateResourceType = async (
     stateMachine: string;
   }
 ) => {
-  const generateResourceTypeResult = await server.server.createMessage({
+  const generateResourceTypeResult = await llm.createMessage({
     systemPrompt: GENERATE_RESOURCE_TYPE_FILE,
     messages: [
       {
@@ -40,7 +41,7 @@ export const generateResourceType = async (
   });
 
   const { go_type, resource_name } = GenerateResourceTypeSchema.parse(
-    parseYamlMessage(generateResourceTypeResult.content.text as string)
+    parseYamlMessage(generateResourceTypeResult)
   );
 
   return {
@@ -54,13 +55,13 @@ const GenerateStorageInterfaceSchema = z.object({
 });
 
 export const generateStorageInterface = async (
-  server: McpServer,
+  llm: LLM,
   {
     resource_name,
     current_storage_interface,
   }: { resource_name: string; current_storage_interface: string }
 ) => {
-  const generateStorageInterfaceResult = await server.server.createMessage({
+  const generateStorageInterfaceResult = await llm.createMessage({
     systemPrompt: GENERATE_STORAGE_INTERFACE,
     messages: [
       {
@@ -76,7 +77,7 @@ export const generateStorageInterface = async (
   });
 
   const { storage_interface_full } = GenerateStorageInterfaceSchema.parse(
-    parseYamlMessage(generateStorageInterfaceResult.content.text as string)
+    parseYamlMessage(generateStorageInterfaceResult)
   );
 
   return {
@@ -89,13 +90,13 @@ const GenerateStorageImplSchema = z.object({
 });
 
 export const generateStorageImpl = async (
-  server: McpServer,
+  llm: LLM,
   {
     resource_name,
     current_storage_impl,
   }: { resource_name: string; current_storage_impl: string }
 ) => {
-  const generateStorageImplResult = await server.server.createMessage({
+  const generateStorageImplResult = await llm.createMessage({
     systemPrompt: GENERATE_STORAGE_IMPL,
     messages: [
       {
@@ -114,7 +115,7 @@ export const generateStorageImpl = async (
   });
 
   const { storage_impl_full } = GenerateStorageImplSchema.parse(
-    parseYamlMessage(generateStorageImplResult.content.text as string)
+    parseYamlMessage(generateStorageImplResult)
   );
 
   return {
@@ -128,7 +129,7 @@ const GenerateControllerSchema = z.object({
 });
 
 export const generateController = async (
-  server: McpServer,
+  llm: LLM,
   {
     sqlSchema,
     stateMachine,
@@ -141,22 +142,22 @@ export const generateController = async (
     currentStorageImpl: string;
   }
 ) => {
-  const { resource_name, go_type } = await generateResourceType(server, {
+  const { resource_name, go_type } = await generateResourceType(llm, {
     sqlSchema,
     stateMachine,
   });
 
-  const { storage_interface_full } = await generateStorageInterface(server, {
+  const { storage_interface_full } = await generateStorageInterface(llm, {
     resource_name,
     current_storage_interface: currentStorageInterface,
   });
 
-  const { storage_impl_full } = await generateStorageImpl(server, {
+  const { storage_impl_full } = await generateStorageImpl(llm, {
     resource_name,
     current_storage_impl: currentStorageImpl,
   });
 
-  const generateControllerResult = await server.server.createMessage({
+  const generateControllerResult = await llm.createMessage({
     systemPrompt: GENERATE_CONTROLLER,
     messages: [
       {
@@ -175,9 +176,7 @@ export const generateController = async (
   });
 
   const { controller_go_impl, controller_go_test } =
-    GenerateControllerSchema.parse(
-      parseYamlMessage(generateControllerResult.content.text as string)
-    );
+    GenerateControllerSchema.parse(parseYamlMessage(generateControllerResult));
 
   return {
     controller_go_impl,

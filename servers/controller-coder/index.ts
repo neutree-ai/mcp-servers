@@ -11,7 +11,8 @@ import {
 } from "./coder.ts";
 import assert from "node:assert";
 import path from "node:path";
-import { commitToBranch } from "./shell.ts";
+import { commitToBranch, formatWorkspace } from "./shell.ts";
+import { LLM } from "./llm.ts";
 
 const NEUTREE_CODE_BASE = Deno.env.get("NEUTREE_CODE_BASE");
 assert(NEUTREE_CODE_BASE, "NEUTREE_CODE_BASE environment variable is not set.");
@@ -25,6 +26,8 @@ const server = new McpServer({
     logging: {},
   },
 });
+
+const llm = new LLM(server);
 
 server.tool(
   "generate-resource-type-file",
@@ -42,7 +45,7 @@ server.tool(
       ),
   },
   async ({ sqlSchema, stateMachine }) => {
-    const { go_type, resource_name } = await generateResourceType(server, {
+    const { go_type, resource_name } = await generateResourceType(llm, {
       sqlSchema,
       stateMachine,
     });
@@ -76,7 +79,7 @@ server.tool(
     const current_storage_interface = await Deno.readTextFile(
       path.resolve(NEUTREE_CODE_BASE, "pkg/storage/storage.go")
     );
-    const { storage_interface_full } = await generateStorageInterface(server, {
+    const { storage_interface_full } = await generateStorageInterface(llm, {
       resource_name,
       current_storage_interface: current_storage_interface,
     });
@@ -110,7 +113,7 @@ server.tool(
     const current_storage_impl = await Deno.readTextFile(
       path.resolve(NEUTREE_CODE_BASE, "pkg/storage/postgrest.go")
     );
-    const { storage_impl_full } = await generateStorageImpl(server, {
+    const { storage_impl_full } = await generateStorageImpl(llm, {
       resource_name,
       current_storage_impl,
     });
@@ -149,8 +152,18 @@ server.tool(
       .describe(
         "Whether to create a new branch for the generated code and push to origin."
       ),
+    commitToFS: z
+      .boolean()
+      .describe(
+        "Whether to commit the generated code to the filesystem. If false, the code will only be returned as a response."
+      ),
   },
-  async ({ sqlSchema, stateMachine, createBranch = true }) => {
+  async ({
+    sqlSchema,
+    stateMachine,
+    createBranch = true,
+    commitToFS = false,
+  }) => {
     const currentStorageInterface = await Deno.readTextFile(
       path.resolve(NEUTREE_CODE_BASE, "pkg/storage/storage.go")
     );
@@ -166,7 +179,7 @@ server.tool(
       storage_interface_full,
       controller_go_impl,
       controller_go_test,
-    } = await generateController(server, {
+    } = await generateController(llm, {
       sqlSchema,
       stateMachine,
       currentStorageImpl,
@@ -216,9 +229,32 @@ server.tool(
       },
     ];
 
-    if (!createBranch) {
+    if (!createBranch && !commitToFS) {
       return {
         content: resources,
+      };
+    }
+
+    if (commitToFS) {
+      for (const r of resources) {
+        await Deno.writeTextFile(
+          path.resolve(
+            NEUTREE_CODE_BASE,
+            r.resource.uri.replace("file://", "")
+          ),
+          r.resource.text
+        );
+      }
+
+      await formatWorkspace();
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `The code has been generated and committed to the filesystem.`,
+          },
+        ],
       };
     }
 

@@ -14,6 +14,7 @@ import {
 } from "npm:@modelcontextprotocol/sdk@1.6.1/types.js";
 import { google } from "npm:@ai-sdk/google@1.2.9";
 import path from "node:path";
+import { ENABLE_SAMPLING } from "../llm.ts";
 
 const gemini_2_0 = google("gemini-2.0-flash");
 const gemini_2_5 = google("gemini-2.5-pro-exp-03-25");
@@ -47,9 +48,11 @@ const client = new Client(
     version: "1.0.0",
   },
   {
-    capabilities: {
-      sampling: {},
-    },
+    capabilities: ENABLE_SAMPLING
+      ? {
+          sampling: {},
+        }
+      : {},
   }
 );
 

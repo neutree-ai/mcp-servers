@@ -15,6 +15,23 @@ async function runCommand(
   return { code, output, error };
 }
 
+export async function formatWorkspace() {
+  const commands = [
+    ["make", "mockgen"],
+    ["make", "fmt"],
+    // ["make", "lint"],
+  ];
+
+  for (const command of commands) {
+    const result = await runCommand(command);
+    if (result.code) {
+      throw new Error(
+        `Command failed: ${command.join(" ")}\nError: ${JSON.stringify(result)}`
+      );
+    }
+  }
+}
+
 export async function commitToBranch({
   resource_name,
   files,
@@ -22,35 +39,60 @@ export async function commitToBranch({
   resource_name: string;
   files: Array<{ path: string; content: string }>;
 }) {
-  for (const file of files) {
-    await Deno.writeTextFile(file.path, file.content);
-  }
-
   const baseBranch = `ai-impl-${resource_name}`;
   let suffix = 0;
   let branchName = baseBranch;
+
   while (true) {
-    const result = await runCommand([
+    const remoteResult = await runCommand([
       "git",
       "ls-remote",
       "--heads",
       "origin",
       branchName,
     ]);
-    if (result.output.trim() === "") {
+
+    const localResult = await runCommand([
+      "git",
+      "branch",
+      "--list",
+      branchName,
+    ]);
+
+    if (remoteResult.output.trim() === "" && localResult.output.trim() === "") {
       break;
     }
+
     suffix += 1;
     branchName = `${baseBranch}-${suffix}`;
   }
 
-  for (const command of [
+  const preCommands = [
     ["git", "config", "user.name", "neutree-ai-coder"],
     ["git", "config", "user.email", "neutree-ai-coder@arcfra.com"],
+    ["git", "reset", "--hard"],
+    ["git", "clean", "-f"],
     ["git", "checkout", "-b", branchName],
-    ["make", "mockgen"],
-    ["make", "fmt"],
-    ["make", "lint"],
+  ];
+
+  for (const command of preCommands) {
+    const result = await runCommand(command);
+    if (result.code) {
+      throw new Error(
+        `Pre-command failed: ${command.join(" ")}\nError: ${JSON.stringify(
+          result
+        )}`
+      );
+    }
+  }
+
+  for (const file of files) {
+    await Deno.writeTextFile(file.path, file.content);
+  }
+
+  await formatWorkspace();
+
+  const commands = [
     ["git", "add", "."],
     [
       "git",
@@ -59,10 +101,14 @@ export async function commitToBranch({
       `feat: (ai-gen) impl the ${resource_name} controller`,
     ],
     ["git", "push", "-u", "origin", branchName],
-  ]) {
+  ];
+
+  for (const command of commands) {
     const result = await runCommand(command);
     if (result.code) {
-      throw new Error(result.error);
+      throw new Error(
+        `Command failed: ${command.join(" ")}\nError: ${JSON.stringify(result)}`
+      );
     }
   }
 
