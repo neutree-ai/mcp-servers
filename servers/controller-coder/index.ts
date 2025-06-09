@@ -155,7 +155,7 @@ server.tool(
     commitToFS: z
       .boolean()
       .describe(
-        "Whether to commit the generated code to the filesystem. If false, the code will only be returned as a response."
+        "Whether to commit the generated code to the filesystem. DO NOT use together with createBranch."
       ),
   },
   async ({
