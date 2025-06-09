@@ -1,9 +1,11 @@
 {
   "name": "@arcfra/neutree-mcp-servers",
-  "version": "0.2.3",
+  "version": "0.3.1",
   "license": "MIT",
   "exports": {
-    "./servers/controller-coder": "./servers/controller-coder/index.ts"
+    "./servers/controller-coder": "./servers/controller-coder/index.ts",
+    "./servers/hf2catalog": "./servers/hf2catalog/index.ts",
+    "./servers/hf2catalog/hf2catalog": "./servers/hf2catalog/hf2catalog.ts"
   },
   "publish": {
     "include": ["servers/**/*.ts"]
