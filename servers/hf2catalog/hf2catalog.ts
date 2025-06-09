@@ -65,8 +65,7 @@ const DEFAULT_VLLM_ARGS = {
 // Helpers
 // -----------------------------
 function fatal(msg: string): never {
-  console.error(`Error: ${msg}`);
-  Deno.exit(1);
+  throw new Error(`Fatal error: ${msg}`);
 }
 
 function mapHFPipelineToTask(pipelineTag?: string): string {
