@@ -41,6 +41,7 @@ const SUPPORTED_TASKS = [
 const HF_PIPELINE_TO_TASK_MAP: Record<string, string> = {
   // Text generation - only the most common ones
   "text-generation": TEXT_GENERATION_TASK,
+  "image-text-to-text": TEXT_GENERATION_TASK,
 
   // Text embedding - only exact matches and feature-extraction (widely used)
   "feature-extraction": TEXT_EMBEDDING_TASK,
