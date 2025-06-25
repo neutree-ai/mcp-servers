@@ -51,6 +51,7 @@ const HF_PIPELINE_TO_TASK_MAP: Record<string, string> = {
   // Text rerank - only exact match
   "text-rerank": TEXT_RERANK_TASK,
   "text-ranking": TEXT_RERANK_TASK,
+  "text-classification": TEXT_RERANK_TASK,
 };
 
 // vLLM best-practice args (can be tuned globally here)
